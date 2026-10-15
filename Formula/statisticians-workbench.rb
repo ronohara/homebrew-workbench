@@ -1,18 +1,24 @@
-# Workbench — the macOS distribution of the Statistician's Workbench.
+# StatisticiansWorkbench — the macOS distribution of the Statistician's Workbench.
 #
-# Installs a prebuilt artifact: three executables onto PATH, the standalone
-# frontend, the translation extract and the two-process service wrapper under
-# libexec, and a licence file. ONE launchd service runs it — the wrapper — which
+# The formula is named `statisticians-workbench`, not `workbench`, because Homebrew
+# already has an unrelated cask called `workbench`: a bare `brew install workbench`
+# resolves to the cask and never reaches this formula. The product's own name is the
+# collision-free one. Only the Homebrew name differs — the artifact, its URL and the
+# paths inside it all keep the `workbench` prefix.
+#
+# Installs a prebuilt artifact: three executables onto PATH, and under libexec the
+# standalone frontend, the translation extract, the two-process service wrapper and the
+# provisioning script, plus a licence file. ONE launchd service runs the wrapper, which
 # starts the Go backend and the Node frontend together, because the backend serves
 # no static files and Homebrew allows a formula only one service block.
 #
 # The version here is the macOS distribution's, from config/workbench-mac.version
-# in workbench-mac. Each platform carries its own versioning.
-#
-# Not installable until the artifact is published: the url 404s and the sha256 is
-# a placeholder. See workbench-mac/docs/workbench-tap-plan.html.
+# in workbench-mac. Each platform carries its own versioning. Database provisioning
+# — including the existing-database guard — is not a formula step at all; it lives
+# in the shipped workbench-provision script. See
+# workbench-mac/docs/workbench-tap-plan.html.
 
-class Workbench < Formula
+class StatisticiansWorkbench < Formula
   desc "Self-hosted statistical analysis platform"
   homepage "https://workbench.sentuny.com"
   url "https://workbench-mac.sentuny.com/workbench/0.12.1/workbench-0.12.1-arm64.tar.gz"
@@ -20,8 +26,9 @@ class Workbench < Formula
   # Written by the build pipeline (stage 7 of scripts/build-workbench-artifact.sh)
   # once the artifact is confirmed served at this URL with exactly this value.
   # Homebrew verifies it on every install, so a wrong value fails closed rather
-  # than installing silently.
-  sha256 "18c1edae8030b527f8340ac28f1f39c1d5e12ad14cf02a596aea9e75e6171c2f"
+  # than installing silently. This is the sha256 of the published 0.12.1 artifact,
+  # recomputed from the fetched bytes.
+  sha256 "27c045e7e56e018fc7b9f8ddff358e8d8b142741e6ffd8f285466bd6aaaab96a"
   # Proprietary — all rights reserved. The terms ship in the keg as
   # LICENSE-ENDUSER.md; :cannot_represent is Homebrew's value for a licence that is
   # not an SPDX identifier, which the audit requires (the literal "Proprietary" is
@@ -37,11 +44,10 @@ class Workbench < Formula
   depends_on "postgresql@16"
 
   def install
-    check_existing_database!
-
     bin.install "bin/workbench-backend", "bin/workbench-seed", "bin/sawhorse"
     libexec.install "libexec/workbench/frontend", "libexec/workbench/translations",
-                    "libexec/workbench/workbench-services"
+                    "libexec/workbench/workbench-services",
+                    "libexec/workbench/workbench-provision"
     prefix.install "LICENSE-ENDUSER.md"
   end
 
@@ -51,7 +57,14 @@ class Workbench < Formula
   # deprecated in favour of `post_install_steps`, and that DSL is declarative file
   # preparation only — mkdir, touch, move, copy, symlink, write. It has no way to
   # run a command, and provisioning must run psql and sawhorse. So the mechanism
-  # for provisioning is an open question, not a settled one.
+  # for provisioning is the shipped workbench-provision script, which the concierge
+  # runs and the formula's caveats name (workbench-mac plan item W13).
+  #
+  # The existing-database guard is in that script too, as its first step. It cannot
+  # live in this formula: Homebrew runs `install` inside a network sandbox, and a
+  # unix-domain socket is network, so a psql here cannot reach PostgreSQL at all —
+  # it raises, and any rescue turns the failure into "cannot determine", which
+  # passes. Searching for the guard in this file is a dead end by design.
   #
   # What belongs here is what the steps DSL can express: the state directories.
   post_install_steps do
@@ -65,59 +78,19 @@ class Workbench < Formula
     var/"workbench/workbench.env"
   end
 
-  # A hard fail when a `workbench` database exists that this installation did not
-  # create. sawhorse's ensureDatabase checks only whether the *name* exists, and
-  # the step after it applies every pending migration — so without this guard an
-  # unrelated database with that name would have the Workbench schema built inside
-  # it. The ownership signal is goose_db_version, which goose creates on the first
-  # migration.
-  #
-  # Runs in `install` rather than `post_install`, so the failure happens before the
-  # formula is linked: `install` aborts the whole installation, whereas a
-  # post_install failure leaves something that looks installed and is not.
-  def check_existing_database!
-    psql = formula_opt_bin("postgresql@16")/"psql"
-    return unless psql.exist?
+  def caveats
+    <<~EOS
+      The database is not provisioned by the install. Do that once, then start the
+      services:
 
-    db = "workbench"
+        #{opt_libexec}/workbench-provision
+        brew services start #{name}
 
-    # A psql that cannot connect — server not running, say — yields nil, and the
-    # guard then cannot determine anything, so it passes. It protects against a
-    # database it can see, which is the case that matters.
-    exists = psql_query(psql, "SELECT 1 FROM pg_database WHERE datname = '#{db}'", "postgres")
-    return if exists != "1"
-
-    ours = psql_query(psql, "SELECT to_regclass('public.goose_db_version') IS NOT NULL", db)
-    return if ours == "t"
-
-    tables = psql_query(psql, "SELECT count(*) FROM information_schema.tables " \
-                              "WHERE table_schema = 'public'", db).to_i
-    # An empty database is what an interrupted install leaves behind; nothing can
-    # be lost by proceeding, and refusing here would leave the flow unable to
-    # resume.
-    return if tables.zero?
-
-    odie <<~EOS
-      Refusing to install: a "#{db}" database already exists on this machine that
-      this installation did not create.
-
-      It contains #{tables} tables but has no goose_db_version table, so the
-      Workbench has never migrated it. Installing would apply the Workbench schema
-      to it.
-
-      If that database is yours, move it aside or remove it, then install again:
-
-        dropdb #{db}
-
-      This installation has changed nothing.
+      workbench-provision creates the database, applies the migrations, writes the
+      runtime configuration under #{var}/workbench and seeds the reference data. It is
+      idempotent, so it is also the step to re-run after an upgrade. It refuses to run
+      if a "workbench" database already exists that this product did not create.
     EOS
-  end
-
-  # One query, or nil when psql could not answer at all.
-  def psql_query(psql, sql, db)
-    Utils.safe_popen_read(psql.to_s, "-tAc", sql, db).strip
-  rescue ErrorDuringExecution
-    nil
   end
 
   # ONE service, not two. Homebrew stores a single service block per formula
@@ -139,6 +112,7 @@ class Workbench < Formula
     environment_variables WORKBENCH_BACKEND:       opt_bin/"workbench-backend",
                           WORKBENCH_FRONTEND_DIR:  opt_libexec/"frontend",
                           WORKBENCH_NODE:          formula_opt_bin("node@24")/"node",
+                          WORKBENCH_ENV_FILE:      var/"workbench/workbench.env",
                           WORKBENCH_BACKEND_PORT:  "8000",
                           WORKBENCH_FRONTEND_PORT: "3000"
     keep_alive true
@@ -152,5 +126,6 @@ class Workbench < Formula
     assert_path_exists libexec/"frontend/server.js"
     assert_path_exists libexec/"translations/translation.sql"
     assert_path_exists libexec/"workbench-services"
+    assert_path_exists libexec/"workbench-provision"
   end
 end
