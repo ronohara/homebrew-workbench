@@ -132,10 +132,10 @@ class Workbench < Formula
   service do
     run [opt_libexec/"workbench-services"]
     working_dir var/"workbench"
-    environment_variables WORKBENCH_BACKEND:      opt_bin/"workbench-backend",
-                          WORKBENCH_FRONTEND_DIR: opt_libexec/"frontend",
-                          WORKBENCH_NODE:         formula_opt_bin("node@24")/"node",
-                          WORKBENCH_BACKEND_PORT: "8000",
+    environment_variables WORKBENCH_BACKEND:       opt_bin/"workbench-backend",
+                          WORKBENCH_FRONTEND_DIR:  opt_libexec/"frontend",
+                          WORKBENCH_NODE:          formula_opt_bin("node@24")/"node",
+                          WORKBENCH_BACKEND_PORT:  "8000",
                           WORKBENCH_FRONTEND_PORT: "3000"
     keep_alive true
     run_at_load true
