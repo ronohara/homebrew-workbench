@@ -16,10 +16,11 @@ class Workbench < Formula
   homepage "https://workbench.sentuny.com"
   url "https://workbench-mac.sentuny.com/workbench/0.12.1/workbench-0.12.1-arm64.tar.gz"
   version "0.12.1"
-  # Placeholder. The artifact does not exist yet, so its checksum is not knowable.
-  # The pipeline writes the real value after publishing. Homebrew verifies it on
-  # every install, so a wrong value fails closed rather than installing silently.
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  # Written by the build pipeline (stage 7 of scripts/build-workbench-artifact.sh)
+  # once the artifact is confirmed served at this URL with exactly this value.
+  # Homebrew verifies it on every install, so a wrong value fails closed rather
+  # than installing silently.
+  sha256 "18c1edae8030b527f8340ac28f1f39c1d5e12ad14cf02a596aea9e75e6171c2f"
   license "Proprietary"
 
   # Pinned and keg-only, so it cannot collide with a `node` the user already has
