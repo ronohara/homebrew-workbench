@@ -1,9 +1,10 @@
 # Workbench — the macOS distribution of the Statistician's Workbench.
 #
 # Installs a prebuilt artifact: three executables onto PATH, the standalone
-# frontend and the translation extract under libexec, and a licence file. Two
-# launchd services run it — the Go backend and the Node frontend — because the
-# backend serves no static files.
+# frontend, the translation extract and the two-process service wrapper under
+# libexec, and a licence file. ONE launchd service runs it — the wrapper — which
+# starts the Go backend and the Node frontend together, because the backend serves
+# no static files and Homebrew allows a formula only one service block.
 #
 # The version here is the macOS distribution's, from config/workbench-mac.version
 # in workbench-mac. Each platform carries its own versioning.
@@ -35,7 +36,8 @@ class Workbench < Formula
     check_existing_database!
 
     bin.install "bin/workbench-backend", "bin/workbench-seed", "bin/sawhorse"
-    libexec.install "libexec/workbench/frontend", "libexec/workbench/translations"
+    libexec.install "libexec/workbench/frontend", "libexec/workbench/translations",
+                    "libexec/workbench/workbench-services"
     prefix.install "LICENSE-ENDUSER.md"
   end
 
@@ -114,19 +116,27 @@ class Workbench < Formula
     nil
   end
 
+  # ONE service, not two. Homebrew stores a single service block per formula
+  # (`Formula.service` → `@service_block`, read back by
+  # `Service.new(self, &self.class.service)`), and there is no plural API — so a
+  # second `service do` silently REPLACES the first rather than adding to it. Two
+  # blocks once sat here, and the survivor was the frontend: the formula would then
+  # have reported a successful install and started a frontend with no backend behind
+  # it, which is worse than not starting at all.
+  #
+  # So the one service is the wrapper, which brings both processes up, waits for the
+  # backend to listen before starting the frontend, and keeps the pair together —
+  # exiting non-zero if either dies, which is what restarts it under `keep_alive`.
+  # The script is in the keg (it arrives in the artifact) and takes its paths from the
+  # environment below, so it follows this keg rather than hard-coding a prefix.
   service do
-    run [opt_bin/"workbench-backend"]
+    run [opt_libexec/"workbench-services"]
     working_dir var/"workbench"
-    environment_variables PORT: "8000"
-    keep_alive true
-    run_at_load true
-  end
-
-  service do
-    name "frontend"
-    run [formula_opt_bin("node@24")/"node", opt_libexec/"frontend/server.js"]
-    working_dir opt_libexec/"frontend"
-    environment_variables PORT: "3000", HOSTNAME: "127.0.0.1"
+    environment_variables WORKBENCH_BACKEND:      opt_bin/"workbench-backend",
+                          WORKBENCH_FRONTEND_DIR: opt_libexec/"frontend",
+                          WORKBENCH_NODE:         formula_opt_bin("node@24")/"node",
+                          WORKBENCH_BACKEND_PORT: "8000",
+                          WORKBENCH_FRONTEND_PORT: "3000"
     keep_alive true
     run_at_load true
   end
@@ -137,5 +147,6 @@ class Workbench < Formula
     assert_path_exists bin/"sawhorse"
     assert_path_exists libexec/"frontend/server.js"
     assert_path_exists libexec/"translations/translation.sql"
+    assert_path_exists libexec/"workbench-services"
   end
 end
