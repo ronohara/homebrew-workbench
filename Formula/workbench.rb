@@ -22,7 +22,11 @@ class Workbench < Formula
   # Homebrew verifies it on every install, so a wrong value fails closed rather
   # than installing silently.
   sha256 "18c1edae8030b527f8340ac28f1f39c1d5e12ad14cf02a596aea9e75e6171c2f"
-  license "Proprietary"
+  # Proprietary — all rights reserved. The terms ship in the keg as
+  # LICENSE-ENDUSER.md; :cannot_represent is Homebrew's value for a licence that is
+  # not an SPDX identifier, which the audit requires (the literal "Proprietary" is
+  # rejected as non-standard).
+  license :cannot_represent
 
   # Pinned and keg-only, so it cannot collide with a `node` the user already has
   # and will not move when Homebrew's `node` takes a new major. The frontend
