@@ -21,8 +21,8 @@
 class StatisticiansWorkbench < Formula
   desc "Self-hosted statistical analysis platform"
   homepage "https://workbench.sentuny.com"
-  url "https://workbench-mac.sentuny.com/workbench/0.12.1/workbench-0.12.1-arm64.tar.gz"
-  version "0.12.1"
+  url "https://workbench-mac.sentuny.com/workbench/0.12.2/workbench-0.12.2-arm64.tar.gz"
+  version "0.12.2"
   # Written by the build pipeline (stage 7 of scripts/build-workbench-artifact.sh)
   # once the artifact is confirmed served at this URL with exactly this value.
   # Homebrew verifies it on every install, so a wrong value fails closed rather
