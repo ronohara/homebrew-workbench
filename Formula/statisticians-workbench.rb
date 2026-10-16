@@ -28,7 +28,7 @@ class StatisticiansWorkbench < Formula
   # Homebrew verifies it on every install, so a wrong value fails closed rather
   # than installing silently. This is the sha256 of the published 0.12.1 artifact,
   # recomputed from the fetched bytes.
-  sha256 "27c045e7e56e018fc7b9f8ddff358e8d8b142741e6ffd8f285466bd6aaaab96a"
+  sha256 "8fa72cd5ca4685e9452ea9f9a1975c1f453cad9fdf18bdc4330b5164e60787e7"
   # Proprietary — all rights reserved. The terms ship in the keg as
   # LICENSE-ENDUSER.md; :cannot_represent is Homebrew's value for a licence that is
   # not an SPDX identifier, which the audit requires (the literal "Proprietary" is
