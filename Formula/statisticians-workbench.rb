@@ -21,14 +21,14 @@
 class StatisticiansWorkbench < Formula
   desc "Self-hosted statistical analysis platform"
   homepage "https://workbench.sentuny.com"
-  url "https://workbench-mac.sentuny.com/workbench/0.12.2-6/workbench-0.12.2-6-arm64.tar.gz"
-  version "0.12.2-6"
+  url "https://workbench-mac.sentuny.com/workbench/0.12.2-7/workbench-0.12.2-7-arm64.tar.gz"
+  version "0.12.2-7"
   # Written by the build pipeline (stage 7 of scripts/build-workbench-artifact.sh)
   # once the artifact is confirmed served at this URL with exactly this value.
   # Homebrew verifies it on every install, so a wrong value fails closed rather
   # than installing silently. This is the sha256 of the published artifact,
   # recomputed from the fetched bytes.
-  sha256 "dabc3bcceaab0f9573d235b8c4cf60bfc0a168e12f15911c060474e415fbc662"
+  sha256 "f55211adf679c8afa2330ba9ed26d721b7714b93ff5629188962a5366d40ca23"
   # Proprietary — all rights reserved. The terms ship in the keg as
   # LICENSE-ENDUSER.md; :cannot_represent is Homebrew's value for a licence that is
   # not an SPDX identifier, which the audit requires (the literal "Proprietary" is
