@@ -23,13 +23,13 @@
 class StatisticiansWorkbenchSampleBikestore < Formula
   desc "BikeStore sample environment for the Statistician's Workbench"
   homepage "https://workbench.sentuny.com"
-  url "https://workbench-mac.sentuny.com/workbench-sample/0.12.2-9/workbench-sample-bikestore-0.12.2-9-arm64.tar.gz"
-  version "0.12.2-9"
+  url "https://workbench-mac.sentuny.com/workbench-sample/0.12.2-10/workbench-sample-bikestore-0.12.2-10-arm64.tar.gz"
+  version "0.12.2-10"
   # Written by the sample's own build pipeline (stage 7 of
   # scripts/build-sample-artifact.sh) once the artifact is confirmed served at this
   # URL with exactly this value. Homebrew verifies it on every install, so a wrong
   # value fails closed rather than installing silently.
-  sha256 "6fcd9be9ece6b0c708814e00f8215bc55a126c108715e2fa6d2128ed703f83d2"
+  sha256 "4553aa0863fdb0b62c92c847673b41d46ae16882d5d9764f18d1f731c4732a77"
   # Proprietary — all rights reserved, under the Workbench's end-user licence.
   license :cannot_represent
 
@@ -41,13 +41,22 @@ class StatisticiansWorkbenchSampleBikestore < Formula
   # discover Homebrew's refusal (or an orphaned sample) for themselves.
   depends_on "statisticians-workbench"
 
+  # THE PAYLOAD ONLY — not the app.
+  #
+  # The app is the installer, and the installer is never in the formula. That is the
+  # arrangement the Workbench already uses and this formula first got wrong (plan Item
+  # 53a): the concierge arrives by `curl` into Application Support and is deliberately
+  # absent from the tarball, so a stale binary cannot pass for a fresh install. Installing
+  # the app here as well made one binary both the installer and the product, and none of
+  # the two distribution routes was complete because of it.
+  #
+  # What the app cannot carry is here: the provision script, the loader, and the nine CSVs
+  # it asks for when it provisions. The app finds them at
+  # opt/<formula>/libexec, the same opt/<formula> convention Workbench.provisionPath uses.
   def install
-    bin.install "bin/sample-bikestore-concierge"
     libexec.install "libexec/workbench-sample-provision",
                     "libexec/workbench-load-bikestore"
     # The nine CSVs, as Linux stages them under usr/lib/workbench/sample-bikestore.
-    # They travel with the formula because the app needs them at provisioning time and
-    # a user should not have to find them.
     libexec.install "libexec/sample-data"
   end
 
@@ -58,11 +67,17 @@ class StatisticiansWorkbenchSampleBikestore < Formula
 
         #{opt_libexec}/workbench-sample-provision
 
-      It asks nothing: you supply the ordinary PostgreSQL cluster's host, port and
-      administrator in the environment (SAMPLE_DB_HOST, SAMPLE_DB_PORT,
-      SAMPLE_DB_ADMIN_USER, SAMPLE_DB_ADMIN_PASSWORD), or you run the app and answer
-      its five questions. The sample is created in an ordinary cluster of its own —
-      never in the Workbench's private one.
+      The app is not part of this formula: install the sample installer with
+
+        curl -fsSL https://workbench-mac.sentuny.com/installer/install-sample.sh | bash
+
+      and press Install in its window. The app runs
+
+        brew install #{name}
+
+      for you, finds this payload under #{opt_libexec}, and asks its five questions.
+      Nothing above has to be typed. The sample is created in an ordinary cluster of
+      its own — never in the Workbench's private one.
 
       Before uninstalling, unregister the sample so the Workbench does not keep an
       account pointing at a database nobody owns:
@@ -74,7 +89,9 @@ class StatisticiansWorkbenchSampleBikestore < Formula
   end
 
   test do
-    assert_path_exists bin/"sample-bikestore-concierge"
+    # No assertion on bin/ — the app is not installed by this formula (Item 53a).
+    # Asserting its absence would be a different claim; the payload's presence is this
+    # formula's contract.
     assert_path_exists libexec/"workbench-sample-provision"
     assert_path_exists libexec/"workbench-load-bikestore"
     assert_path_exists libexec/"sample-data/bike-store/orders.csv"
