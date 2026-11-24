@@ -23,13 +23,13 @@
 class StatisticiansWorkbenchSampleBikestore < Formula
   desc "BikeStore sample environment for the Statistician's Workbench"
   homepage "https://workbench.sentuny.com"
-  url "https://workbench-mac.sentuny.com/workbench-sample/0.12.2-13/workbench-sample-bikestore-0.12.2-13-arm64.tar.gz"
-  version "0.12.2-13"
+  url "https://workbench-mac.sentuny.com/workbench-sample/0.12.2-15/workbench-sample-bikestore-0.12.2-15-arm64.tar.gz"
+  version "0.12.2-15"
   # Written by the sample's own build pipeline (stage 7 of
   # scripts/build-sample-artifact.sh) once the artifact is confirmed served at this
   # URL with exactly this value. Homebrew verifies it on every install, so a wrong
   # value fails closed rather than installing silently.
-  sha256 "e22e701dccb0ddaa42b79d6bbae74f93d3e30acc061338ae5d311811852d1a9d"
+  sha256 "8b7723f1a89b1b45af01081006737170ece720c02f5f0b3f026a6460a6a800ee"
   # Proprietary — all rights reserved, under the Workbench's end-user licence.
   license :cannot_represent
 
@@ -58,6 +58,8 @@ class StatisticiansWorkbenchSampleBikestore < Formula
                     "libexec/workbench-load-bikestore"
     # The nine CSVs, as Linux stages them under usr/lib/workbench/sample-bikestore.
     libexec.install "libexec/sample-data"
+    # The end-user licence, as the Workbench's own formula installs it.
+    prefix.install "LICENSE-ENDUSER.md"
   end
 
   def caveats
@@ -95,6 +97,7 @@ class StatisticiansWorkbenchSampleBikestore < Formula
     assert_path_exists libexec/"workbench-sample-provision"
     assert_path_exists libexec/"workbench-load-bikestore"
     assert_path_exists libexec/"sample-data/bike-store/orders.csv"
+    assert_path_exists prefix/"LICENSE-ENDUSER.md"
     # Nine CSVs, because the loader expects nine and a short set loads a partial
     # sample silently. Asserted as a count rather than by name so a renamed file is
     # caught here rather than at a user's provisioning.
