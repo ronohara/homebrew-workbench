@@ -23,13 +23,13 @@
 class StatisticiansWorkbenchSampleBikestore < Formula
   desc "BikeStore sample environment for the Statistician's Workbench"
   homepage "https://workbench.sentuny.com"
-  url "https://workbench-mac.sentuny.com/workbench-sample/0.12.2-10/workbench-sample-bikestore-0.12.2-10-arm64.tar.gz"
-  version "0.12.2-10"
+  url "https://workbench-mac.sentuny.com/workbench-sample/0.12.2-13/workbench-sample-bikestore-0.12.2-13-arm64.tar.gz"
+  version "0.12.2-13"
   # Written by the sample's own build pipeline (stage 7 of
   # scripts/build-sample-artifact.sh) once the artifact is confirmed served at this
   # URL with exactly this value. Homebrew verifies it on every install, so a wrong
   # value fails closed rather than installing silently.
-  sha256 "4553aa0863fdb0b62c92c847673b41d46ae16882d5d9764f18d1f731c4732a77"
+  sha256 "e22e701dccb0ddaa42b79d6bbae74f93d3e30acc061338ae5d311811852d1a9d"
   # Proprietary — all rights reserved, under the Workbench's end-user licence.
   license :cannot_represent
 
